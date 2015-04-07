@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html>
+
+	<head>
+		<meta charset="utf-8" />
+		<title></title>
+		<script src="jquery-1.11.1.min.js" type="text/javascript" charset="utf-8"></script>
+	</head>
+
+	<body>
+		<div id="showDv">
+
+			input&nbsp;word:&nbsp;
+			<input type="text" id="txtInput" value="" maxlength="80" />
+			<br />
+			<br />
+			<input type="button" id="btnStart" value="Start Game" />
+			<input type="button" id="btnGuess" value="Guess Word" disabled="disabled" />
+			<input type="button" id="btnResult" value="Get Result" disabled="disabled" />
+			<input type="button" id="btnSubmit" value="Submit" disabled="disabled" />
+
+		</div>
+		<br />
+		<hr />
+		<br />
+
+		<div id="bang">
+			sessionId : <span id="sessionId"></span>
+			<br /> numberOfWordsToGuess : <span id="numberOfWordsToGuess"></span>
+			<br /> numberOfGuessAllowedForEachWord : <span id="numberOfGuessAllowedForEachWord"></span>
+			<br /> word : <span id="word"></span>
+			<br /> totalWordCount : <span id="totalWordCount"></span>
+			<br /> wrongGuessCountOfCurrentWord : <span id="wrongGuessCountOfCurrentWord"></span>
+			<br />
+		</div>
+
+		<br />
+		<hr />
+		<br /> r_totalWordCount : <span id="r_totalWordCount"></span>
+		<br /> r_correctWordCount : <span id="r_correctWordCount"></span>
+		<br /> r_totalWrongGuessCount : <span id="r_totalWrongGuessCount"></span>
+		<br /> r_score : <span id="r_score"></span>
+
+	</body>
+
+	<script type="text/javascript">
+		(function() {
+			var requestURL = "https://strikingly-hangman.herokuapp.com/game/on"; //action port
+			var playerID = "329142963@qq.com";
+			var sessionId = "";
+			//1 obj for 1 game
+			function Game() {
+				this.correctWord = "";
+			};
+			//core post method
+			Game.prototype.doPost = function(param, callback) {
+				$.ajax({
+					type: "POST",
+					url: requestURL,
+					contentType: "application/json",
+					dataType: "json",
+					async: false,
+					data: JSON.stringify(param),
+					success: callback
+				});
+			};
+			//-------------------------------------------------
+			//request for start game
+			Game.prototype.startGame = function() {
+				var startGameParam = {
+					"playerId": playerID,
+					"action": "startGame"
+				};
+				this.doPost(startGameParam, this.gameInit);
+			};
+			//init parameter, cache the session id
+			Game.prototype.gameInit = function(jsonResult) {
+				sessionId = jsonResult.sessionId;
+				$("#sessionId").html(jsonResult.sessionId);
+				$("#numberOfWordsToGuess").html(jsonResult.data.numberOfWordsToGuess);
+				$("#numberOfGuessAllowedForEachWord").html(jsonResult.data.numberOfGuessAllowedForEachWord);
+			};
+			//-----------------------------------------------
+			//ask for a word
+			Game.prototype.getWord = function() {
+				var getWordParam = {
+					"sessionId": sessionId,
+					"action": "nextWord"
+				};
+				this.doPost(getWordParam, this.cacheCorrectWord);
+			};
+			//make a guess
+			Game.prototype.guessWord = function(wordPartten) {
+				var guessWordParam = {
+					"sessionId": sessionId,
+					"action": "guessWord",
+					"guess": wordPartten
+				};
+				this.doPost(guessWordParam, this.cacheCorrectWord);
+			};
+			//cache the correct word
+			Game.prototype.cacheCorrectWord = function(jsonResult) {
+				this.correctWord = jsonResult.data.word;
+				$("#word").html(jsonResult.data.word);
+				$("#totalWordCount").html(jsonResult.data.totalWordCount);
+				$("#wrongGuessCountOfCurrentWord").html(jsonResult.data.wrongGuessCountOfCurrentWord);
+			};
+			//----------------------------------------------
+			//get result
+			Game.prototype.getResult = function() {
+				var getResultParam = {
+					"sessionId": sessionId,
+					"action": "getResult"
+				};
+				this.doPost(getResultParam, this.showResult);
+			};
+			//show result to user before submit.
+			Game.prototype.showResult = function(jsonResult) {
+				$("#r_totalWordCount").html(jsonResult.data.totalWordCount);
+				$("#r_correctWordCount").html(jsonResult.data.correctWordCount);
+				$("#r_totalWrongGuessCount").html(jsonResult.data.totalWrongGuessCount);
+				$("#r_score").html(jsonResult.data.score);
+			};
+			//-----------------------------------------------
+			//submit game
+			Game.prototype.submitGame = function() {
+				var submitResult = {
+					"sessionId": sessionId,
+					"action": "submitResult"
+				};
+				this.doPost(getResultParam, this.showScore);
+			};
+			//show score
+			Game.prototype.showScore = function(jsonResult) {
+				alert(jsonResult);
+			}
+
+			function $Game() {
+				return new Game();
+			}
+			window.$Game = $Game;
+		})();
+		
+		 //let's start
+		$(function() {
+			var currentGame;
+			$("#btnStart").on("click", function() {
+				currentGame = $Game();
+				currentGame.startGame();
+				currentGame.getWord();
+				$(this).prop("disabled", true);
+				$("#btnGuess").prop("disabled", false);
+				$("#btnResult").prop("disabled", false);
+				$("#btnSubmit").prop("disabled", false);
+				$("#btnGet").prop("disabled", false);
+			});
+			$("#btnGuess").on("click", function() {
+				var guessPartten = $("#txtInput").val();
+				currentGame.guessWord(guessPartten);
+			});
+			$("#btnResult").on("click", function() {
+				currentGame.getResult();
+			});
+		});
+	</script>
+
+</html>
