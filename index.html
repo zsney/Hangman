@@ -14,11 +14,11 @@
 			<input type="text" id="txtInput" value="" maxlength="80" />
 			<br />
 			<br />
-			<input type="button" id="btnStart" value="Start Game" />
-			<input type="button" id="btnNext" value="Next Word" disabled="disabled" />
-			<input type="button" id="btnGuess" value="Guess Word" disabled="disabled" />
-			<input type="button" id="btnResult" value="Get Result" disabled="disabled" />
-			<input type="button" id="btnSubmit" value="Submit" disabled="disabled" />
+			<input type="button" id="btnStart" value="Start New Game" />
+			<input type="button" id="btnNext" value="Next Word" />
+			<input type="button" id="btnGuess" value="Guess Word" />
+			<input type="button" id="btnResult" value="Get Result" />
+			<input type="button" id="btnSubmit" value="Submit" />
 
 		</div>
 		<br />
@@ -42,19 +42,30 @@
 		<br /> r_totalWrongGuessCount : <span id="r_totalWrongGuessCount"></span>
 		<br /> r_score : <span id="r_score"></span>
 
+		<br />
+		<hr />
+		<br />
+
+		<iframe id="wordsframe" src="words.html" width="100%" height="100%"></iframe>
+
 	</body>
 
 	<script type="text/javascript">
 		(function() {
 			var requestURL = "https://strikingly-hangman.herokuapp.com/game/on"; //action port
 			var playerID = "329142963@qq.com";
-			var sessionId = "";
+			var words = "";
+			var tempArr = [];
+			var globalInitDoneFlag = false;
+			var gameStartFlag = false;
+			
 			//1 obj for 1 game
 			function Game() {
 				this.correctWord = "";
+				this.sessionId = "";
 			};
 			//core post method
-			Game.prototype.doPost = function(param, callback) {
+			Game.prototype.doPost = function(param, callback, data) {
 				$.ajax({
 					type: "POST",
 					url: requestURL,
@@ -62,25 +73,28 @@
 					dataType: "json",
 					async: false,
 					data: JSON.stringify(param),
-					success: callback
+					success: function(jsonResult){
+						callback(jsonResult,data);
+					}
 				});
 			};
-			Game.prototype.analysis = function(word){
-				if(word.indexOf('*') < 0) return true;
-				
+			Game.prototype.analysis = function(word) {
+				if (word.indexOf('*') < 0) return true;
 			};
 			//-------------------------------------------------
 			//request for start game
 			Game.prototype.startGame = function() {
+				if(!globalInitDoneFlag) return;
+				tempArr = words.split(' ');
 				var startGameParam = {
 					"playerId": playerID,
 					"action": "startGame"
 				};
-				this.doPost(startGameParam, this.gameInit);
+				this.doPost(startGameParam, this.gameInit, this);
 			};
 			//init parameter, cache the session id
-			Game.prototype.gameInit = function(jsonResult) {
-				sessionId = jsonResult.sessionId;
+			Game.prototype.gameInit = function(jsonResult,data) {
+				data.sessionId = jsonResult.sessionId;
 				$("#sessionId").html(jsonResult.sessionId);
 				$("#numberOfWordsToGuess").html(jsonResult.data.numberOfWordsToGuess);
 				$("#numberOfGuessAllowedForEachWord").html(jsonResult.data.numberOfGuessAllowedForEachWord);
@@ -89,24 +103,24 @@
 			//ask for a word
 			Game.prototype.getWord = function() {
 				var getWordParam = {
-					"sessionId": sessionId,
+					"sessionId": this.sessionId,
 					"action": "nextWord"
 				};
-				this.doPost(getWordParam, this.cacheCorrectWord);
+				this.doPost(getWordParam, this.cacheCorrectWord, this);
 			};
 			//make a guess
 			Game.prototype.guessWord = function(wordPartten) {
 				var guessWordParam = {
-					"sessionId": sessionId,
+					"sessionId": this.sessionId,
 					"action": "guessWord",
 					"guess": wordPartten
 				};
-				this.doPost(guessWordParam, this.cacheCorrectWord);
+				this.doPost(guessWordParam, this.cacheCorrectWord, this);
 			};
 			//cache the correct word
-			Game.prototype.cacheCorrectWord = function(jsonResult) {
+			Game.prototype.cacheCorrectWord = function(jsonResult,obj) {
 				this.correctWord = jsonResult.data.word;
-				
+				this.analysis(jsonResult.data.word);
 				$("#word").html(jsonResult.data.word);
 				$("#totalWordCount").html(jsonResult.data.totalWordCount);
 				$("#wrongGuessCountOfCurrentWord").html(jsonResult.data.wrongGuessCountOfCurrentWord);
@@ -115,13 +129,13 @@
 			//get result
 			Game.prototype.getResult = function() {
 				var getResultParam = {
-					"sessionId": sessionId,
+					"sessionId": this.sessionId,
 					"action": "getResult"
 				};
-				this.doPost(getResultParam, this.showResult);
+				this.doPost(getResultParam, this.showResult, this);
 			};
 			//show result to user before submit.
-			Game.prototype.showResult = function(jsonResult) {
+			Game.prototype.showResult = function(jsonResult,obj) {
 				$("#r_totalWordCount").html(jsonResult.data.totalWordCount);
 				$("#r_correctWordCount").html(jsonResult.data.correctWordCount);
 				$("#r_totalWrongGuessCount").html(jsonResult.data.totalWrongGuessCount);
@@ -131,13 +145,13 @@
 			//submit game
 			Game.prototype.submitGame = function() {
 				var submitResult = {
-					"sessionId": sessionId,
+					"sessionId": this.sessionId,
 					"action": "submitResult"
 				};
-				this.doPost(getResultParam, this.showScore);
+				this.doPost(getResultParam, this.showScore, this);
 			};
 			//show score
-			Game.prototype.showScore = function(jsonResult) {
+			Game.prototype.showScore = function(jsonResult,obj) {
 				alert(jsonResult);
 			}
 
@@ -145,6 +159,14 @@
 				return new Game();
 			}
 			window.$Game = $Game;
+			
+			//global words libs init
+			function initial() {
+				words = document.getElementById("wordsframe").contentWindow.document.all[0].innerText;
+				!words ? setTimeout(initial,500) : globalInitDoneFlag=true;
+			};
+			initial();
+			
 		})();
 		
 		 //let's start
@@ -154,11 +176,9 @@
 				currentGame = $Game();
 				currentGame.startGame();
 				currentGame.getWord();
-				$(this).prop("disabled", true);
-				$("#btnGuess").prop("disabled", false);
-				$("#btnResult").prop("disabled", false);
-				$("#btnSubmit").prop("disabled", false);
-				$("#btnGet").prop("disabled", false);
+			});
+			$("#btnNext").on("click", function() {
+				currentGame.getWord();
 			});
 			$("#btnGuess").on("click", function() {
 				var guessPartten = $("#txtInput").val();
@@ -167,9 +187,7 @@
 			$("#btnResult").on("click", function() {
 				currentGame.getResult();
 			});
-			$("#btnNext").on("click", function() {
-				currentGame.getWord();
-			});
+			
 		});
 	</script>
 
