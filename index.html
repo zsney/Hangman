@@ -15,6 +15,7 @@
 			<br />
 			<br />
 			<input type="button" id="btnStart" value="Start Game" />
+			<input type="button" id="btnNext" value="Next Word" disabled="disabled" />
 			<input type="button" id="btnGuess" value="Guess Word" disabled="disabled" />
 			<input type="button" id="btnResult" value="Get Result" disabled="disabled" />
 			<input type="button" id="btnSubmit" value="Submit" disabled="disabled" />
@@ -64,6 +65,10 @@
 					success: callback
 				});
 			};
+			Game.prototype.analysis = function(word){
+				if(word.indexOf('*') < 0) return true;
+				
+			};
 			//-------------------------------------------------
 			//request for start game
 			Game.prototype.startGame = function() {
@@ -101,6 +106,7 @@
 			//cache the correct word
 			Game.prototype.cacheCorrectWord = function(jsonResult) {
 				this.correctWord = jsonResult.data.word;
+				
 				$("#word").html(jsonResult.data.word);
 				$("#totalWordCount").html(jsonResult.data.totalWordCount);
 				$("#wrongGuessCountOfCurrentWord").html(jsonResult.data.wrongGuessCountOfCurrentWord);
@@ -160,6 +166,9 @@
 			});
 			$("#btnResult").on("click", function() {
 				currentGame.getResult();
+			});
+			$("#btnNext").on("click", function() {
+				currentGame.getWord();
 			});
 		});
 	</script>
