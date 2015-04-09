@@ -4,45 +4,47 @@
 	<head>
 		<meta charset="utf-8">
 		<title></title>
-		
+
 	</head>
 
 	<body>
-		Loading....
-		
-		<br />
-		<hr />
-		<br />
-
-		<br />
-		<hr />
+		<iframe id="wordsframe" src="words.html" width="100%" height="100%" style="display: none;"></iframe>
 		<br /> r_totalWordCount : <span id="r_totalWordCount"></span>
 		<br /> r_correctWordCount : <span id="r_correctWordCount"></span>
 		<br /> r_totalWrongGuessCount : <span id="r_totalWrongGuessCount"></span>
 		<br /> r_score : <span id="r_score"></span>
-		
+
 		<script src="jquery-1.11.1.min.js" type="text/javascript" charset="utf-8"></script>
 		<script src="GameObject.js" type="text/javascript" charset="utf-8"></script>
-		<script type="text/javascript">
-			var libs = "a,an,book,cat,catch,qoor,door,man,women,look,liou,love,see,boy,name,user,information,message";
-			 //			var correctWord = "*O*R";
-			 //			var newReg = correctWord.replace(/\*/g,"\[A\-Z\]");
-			 //			var result = libs.match(new RegExp(newReg,"gi"));
-			 //			var resultStr = result.join(",");
-			 //			alert(resultStr);
-//			var temp = libs.split('').sort().join('').match(/([A-Za-z])\1+/g).sort(function(b, a) {
-//				return a.length - b.length
-//			});
-//			alert(temp.shift()[0]);
-//			alert(temp.shift()[0]);
-//			alert(temp.shift()[0]);
 
-//			var arr = [0];
-//			alert(arr.join(","));
-			var game = $Game();
-			game.initGame();
-			game.getWord();
-		</script>
+		<br />
+		<hr />
+		<br />
+		<p id="messages">wait 3s for installing libs...... then start game</p>
+		<p id="messages">pls waiting 5-15 minutes or more - -.</p>
+		<br />
+		<br />
+		<input type="button" id="btnStart" value="start" />
+		<br />
+		<br />
+		<input type="button" id="btnSubmit" value="submit" />
+		<br />
+		<br />Results:
+		<div id="results">
+
+		</div>
+
 	</body>
+	<script type="text/javascript">
+		var game;
+		$("#btnSubmit").on("click", function() {
+			if (!game) return;
+			game.submitGame();
+		});
+		$("#btnStart").on("click", function() {
+			if (!game) game = $Game();
+			if (!game.gameRunningFlag) game.initGame();
+		});
+	</script>
 
 </html>
